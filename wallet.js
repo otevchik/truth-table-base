@@ -76,19 +76,6 @@ Nonce: ${nonce}`;
 // --- Функция для game.js ---
 window.isWalletVerified = () => verified;
 
-// --- Функция для сохранения очков ---
-window.saveScoreOnChain = async (score) => {
-  if (!signer || !userAddress || !verified) {
-    alert("Wallet not verified!");
-    return false;
-  }
-
-  // Здесь можно отправить данные на смарт-контракт
-  // Сейчас просто имитируем сохранение
-  alert(`Score of ${score} for wallet ${userAddress} would be saved on chain!`);
-  return true;
-};
-
 
 window.saveScoreOnChain = async (score) => {
   if (!signer || !userAddress || !verified) {
@@ -105,7 +92,7 @@ Nonce: ${nonce}`;
   try {
     const signature = await signer.signMessage(message);
 
-    const resp = await fetch("https://truth-table-base.onrender.com", {
+    const resp = await fetch("https://truth-table-base.onrender.com/save-score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ wallet: userAddress, score, message, signature })
