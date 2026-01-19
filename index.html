@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Truth Table</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="card">
+  <h1>Truth Table</h1>
+  <div class="subtitle">Decide if the expression is TRUE or FALSE</div>
+
+  <div class="expr" id="expression">—</div>
+
+  <div class="buttons">
+  <button class="true" onclick="answer(true, this)">TRUE</button>
+  <button class="false" onclick="answer(false, this)">FALSE</button>
+</div>
+
+<button class="restart" onclick="restartGame()">Restart</button>
+<button class="info" id="infoBtn">Info</button>
+
+  <div id="status"></div>
+
+  <div class="footer">
+    <div id="score">Score: 0</div>
+    <div>Base-ready</div>
+  </div>
+
+  <!-- Кнопки подключения кошелька -->
+<div id="walletControls">
+  <button id="connectBtn">Connect Wallet</button>
+  <button id="disconnectBtn" style="display:none;">Disconnect Wallet</button>
+  <div id="wallet"></div>
+</div>
+
+  <!-- Leaderboard под кнопками -->
+  <div class="leaderboard">
+    <h2>Leaderboard</h2>
+    <table id="leaderboardTable">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Wallet</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Лидеры появятся здесь -->
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.9.1/dist/ethers.min.js"></script>
+<script type="module" src="wallet.js"></script>
+<script src="game.js"></script>
+<script src="leaderboard.js"></script>
+
+</body>
+</html>
