@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { ethers } = require("ethers"); // переместил сюда, один раз
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -10,8 +11,8 @@ app.use(cors());
 app.use(express.json());
 
 // --- Supabase client ---
-const supabaseUrl = "https://lmplzgjrpfpzjzcmdbkh.supabase.co"; // вставь свой URL
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtcGx6Z2pycGZwemp6Y21kYmtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MTk3MzMsImV4cCI6MjA4NDM5NTczM30.cQ1GFMoow3yfExBKWE7wAclYP5b7tl_PZAcFZ5bAYlU"; // вставь свой публичный anon ключ
+const supabaseUrl = "https://lmplzgjrpfpzjzcmdbkh.supabase.co"; // твой URL
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtcGx6Z2pycGZwemp6Y21kYmtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MTk3MzMsImV4cCI6MjA4NDM5NTczM30.cQ1GFMoow3yfExBKWE7wAclYP5b7tl_PZAcFZ5bAYlU"; // твой anon ключ
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- API для сохранения счета ---
@@ -23,8 +24,7 @@ app.post("/save-score", async (req, res) => {
       return res.status(400).json({ success: false, error: "Missing fields" });
     }
 
-    // Проверка подписи (ethers.js)
-    const { ethers } = require("ethers");
+    // Проверка подписи через ethers.js
     try {
       const recovered = ethers.verifyMessage(message, signature);
       if (recovered.toLowerCase() !== wallet.toLowerCase()) {
@@ -37,7 +37,7 @@ app.post("/save-score", async (req, res) => {
     // Сохраняем или обновляем счёт в Supabase
     const { data, error } = await supabase
       .from("scores")
-      .upsert([{ wallet, score }], { onConflict: ["wallet"] });
+      .upsert({ wallet, score }, { onConflict: ["wallet"] }); // onConflict = wallet, потому что wallet уникален
 
     if (error) throw error;
 
