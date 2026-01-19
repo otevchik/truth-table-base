@@ -1,7 +1,7 @@
 let currentPage = 1;
 
 async function loadLeaderboard(page = 1) {
-  const resp = await fetch(`http://localhost:3000/leaderboard?page=${page}`);
+  const resp = await fetch(`https://truth-table-base.onrender.com/leaderboard?page=${page}`);
   const data = await resp.json();
 
   // Если данных нет — возвращаем false и не меняем таблицу

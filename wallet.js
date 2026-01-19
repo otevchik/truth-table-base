@@ -105,7 +105,7 @@ Nonce: ${nonce}`;
   try {
     const signature = await signer.signMessage(message);
 
-    const resp = await fetch("http://localhost:3000/save-score", {
+    const resp = await fetch("https://truth-table-base.onrender.com", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ wallet: userAddress, score, message, signature })
