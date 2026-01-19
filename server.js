@@ -1,96 +1,80 @@
-
-
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
-const bodyParser = require("body-parser");
 const cors = require("cors");
-const { ethers } = require("ethers");
+const path = require("path");
+const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json()); // ВАЖНО
+app.use(express.json());
 
-
-// --- База данных ---
-const db = new sqlite3.Database("./database.sqlite", (err) => {
-  if (err) console.error(err);
-  else console.log("Connected to SQLite database");
-});
-
-// Создаём таблицу, если нет
-db.run(`
-  CREATE TABLE IF NOT EXISTS scores (
-    wallet TEXT PRIMARY KEY,
-    score INTEGER
-  )
-`);
+// --- Supabase client ---
+const supabaseUrl = "https://lmplzgjrpfpzjzcmdbkh.supabase.co"; // вставь свой URL
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtcGx6Z2pycGZwemp6Y21kYmtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MTk3MzMsImV4cCI6MjA4NDM5NTczM30.cQ1GFMoow3yfExBKWE7wAclYP5b7tl_PZAcFZ5bAYlU"; // вставь свой публичный anon ключ
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- API для сохранения счета ---
-app.post("/save-score", (req, res) => {
+app.post("/save-score", async (req, res) => {
   try {
     const { wallet, score, message, signature } = req.body;
 
-    console.log("SAVE SCORE REQUEST:", req.body);
-
     if (!wallet || score === undefined || !message || !signature) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing fields"
-      });
+      return res.status(400).json({ success: false, error: "Missing fields" });
     }
 
-    // временно НЕ проверяем подпись
-    db.run(
-      "INSERT INTO scores (wallet, score) VALUES (?, ?)",
-      [wallet, score],
-      (err) => {
-        if (err) {
-          console.error("DB ERROR:", err);
-          return res.status(500).json({
-            success: false,
-            error: "Database error"
-          });
-        }
-
-        res.json({ success: true });
+    // Проверка подписи (ethers.js)
+    const { ethers } = require("ethers");
+    try {
+      const recovered = ethers.verifyMessage(message, signature);
+      if (recovered.toLowerCase() !== wallet.toLowerCase()) {
+        return res.status(400).json({ success: false, error: "Invalid signature" });
       }
-    );
-  } catch (e) {
-    console.error("SERVER CRASH:", e);
-    res.status(500).json({
-      success: false,
-      error: "Server crashed"
-    });
+    } catch (err) {
+      return res.status(400).json({ success: false, error: "Signature verification failed" });
+    }
+
+    // Сохраняем или обновляем счёт в Supabase
+    const { data, error } = await supabase
+      .from("scores")
+      .upsert([{ wallet, score }], { onConflict: ["wallet"] });
+
+    if (error) throw error;
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("SAVE SCORE ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-
 // --- API для leaderboard с пагинацией ---
-app.get("/leaderboard", (req, res) => {
+app.get("/leaderboard", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = 10;
-  const offset = (page - 1) * pageSize;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
-  db.all(
-    `SELECT wallet, score FROM scores ORDER BY score DESC LIMIT ? OFFSET ?`,
-    [pageSize, offset],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ data: rows, page });
-    }
-  );
+  try {
+    const { data, error } = await supabase
+      .from("scores")
+      .select("wallet, score")
+      .order("score", { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    res.json({ data, page });
+  } catch (err) {
+    console.error("LEADERBOARD ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
+// --- Статические файлы фронтенда ---
+app.use(express.static(path.join(__dirname)));
+
+// --- Запуск сервера ---
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
-
-
-const path = require("path");
-
-// Делаем папку с фронтендом статической
-app.use(express.static(path.join(__dirname)));
-
-// Теперь, если зайти на http://localhost:3000/index.html, откроется игра
