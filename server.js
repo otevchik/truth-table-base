@@ -16,6 +16,7 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- API для сохранения счета ---
+// --- API для сохранения счета ---
 app.post("/save-score", async (req, res) => {
   try {
     const { wallet, score, message, signature } = req.body;
@@ -34,10 +35,26 @@ app.post("/save-score", async (req, res) => {
       return res.status(400).json({ success: false, error: "Signature verification failed" });
     }
 
-    // Сохраняем или обновляем счёт в Supabase
+    // --- Получаем текущий лучший score ---
+    const { data: existingData, error: selectError } = await supabase
+      .from("scores")
+      .select("score")
+      .eq("wallet", wallet)
+      .single();
+
+    if (selectError && selectError.code !== "PGRST116") { // PGRST116 = no rows found
+      throw selectError;
+    }
+
+    // Если новый score <= текущего, не сохраняем
+    if (existingData && score <= existingData.score) {
+      return res.json({ success: true, data: existingData, message: "Current score is higher or equal, not updated" });
+    }
+
+    // Сохраняем новый лучший score
     const { data, error } = await supabase
       .from("scores")
-      .upsert({ wallet, score }, { onConflict: ["wallet"] }); // onConflict = wallet, потому что wallet уникален
+      .upsert({ wallet, score }, { onConflict: ["wallet"] });
 
     if (error) throw error;
 
@@ -47,6 +64,7 @@ app.post("/save-score", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 // --- API для leaderboard с пагинацией ---
 app.get("/leaderboard", async (req, res) => {
